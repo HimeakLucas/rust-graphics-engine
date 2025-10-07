@@ -52,7 +52,7 @@ Mesh* mesh = new Mesh();
 delete mesh;
 mesh->render(); // ❌ undefined behavior
 ```
-
+```
 // Rust: compile-time error
 let mesh = Mesh::new();
 drop(mesh);
