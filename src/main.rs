@@ -1,32 +1,46 @@
-use glfw::{Action, Context, Key, WindowEvent};
-//use std::sync::mpsc::Receiver;
-
-const SCR_WIDTH: u32 = 800;
-const SCR_HEIGHT: u32 = 600;
+use glutin::event::{Event, WindowEvent};
+use glutin::event_loop::{ControlFlow, EventLoop};
+use glutin::window::WindowBuilder;
+use glutin::{Api, ContextBuilder, GlRequest};
 
 fn main() {
- 
-    //Inicia o GLFW, delimita a versão e o profile do Opengl (Versão 3 e core profile. A versão
-    //pode ser alterada depois mas acredito que não faça muita diferençã)
-    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).expect("Failed to init GLFW");
-    glfw.window_hint(glfw::WindowHint::ContextVersion(3,3));
-    glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core,));
+    let event_loop = EventLoop::new();
+    let window = WindowBuilder::new().with_title("LWA-Graphics-Engine");
+
+    let gl_context = ContextBuilder::new()
+        .with_gl(GlRequest::Specific(Api::OpenGl, (3,3)))
+        .build_windowed(window, &event_loop)
+        .expect("Cannot create  windowed context");
+
+    let gl_context = unsafe {
+        gl_context
+            .make_current()
+            .expect("Failed to make context current")
+    };
+
+    gl::load_with(|ptr| gl_context.get_proc_address(ptr) as *const _);
 
 
-    let (mut window, events) = glfw
-        .create_window(SCR_WIDTH, SCR_HEIGHT, "LWA OpengGl", glfw::WindowMode::Windowed)
-        .expect("Failed to create GLFW window");
+    event_loop.run(move |event, _ , control_flow| { //??????
 
-    window.make_current();
-    //window.set_key_polling(true);
-    //window.set_framebuffer_size_polling(true);
+        *control_flow = ControlFlow::Wait;
 
-    //Carrega os ponteiros das funções do OpenGl
-    gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
+        match event {
+            Event::LoopDestroyed => (),
+            Event::WindowEvent {event, ..} => match event {
+                WindowEvent::Resized(physical_size)  => gl_context.resize(physical_size),
+                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+                _ => (),
 
-    while !window.should_close() {
-        window.swap_buffers();
-
-    }
+            },
+            Event::RedrawRequested(_) => {
+                unsafe {
+                    gl::ClearColor(0.0, 0.0, 1.0, 1.0);
+                    gl::Clear(gl::COLOR_BUFFER_BIT);
+                }
+                gl_context.swap_buffers().unwrap();
+            }
+            _ => (),
+        }
+    });
 }
-
