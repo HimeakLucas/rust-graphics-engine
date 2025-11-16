@@ -6,6 +6,7 @@ use glutin::{Api, ContextBuilder, GlRequest};
 use std::ffi::CString; //representa uma owned string compatível com C. Facilita a interação com
 //códiogo C de maneira segura (com funções estrangeiras (Foreign Function Interface = FFI))
 use std::ptr;
+use std::time::Instant;
 
 const VERTEX_SHADER_SOURCE: &str = r#" 
     #version 330 core
@@ -19,13 +20,17 @@ const FRAGMENT_SHADER_SOURCE: &str = r#"
     #version 330 core
     out vec4 FragColor;
 
+    uniform vec4 ourColor;
+
     void main() {
-        FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+        FragColor = ourColor;
     }
     "#;
 
 
 fn main() {
+    
+    let start_time = Instant::now();
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new().with_title("LWA-Graphics-Engine");
 
@@ -94,6 +99,11 @@ fn main() {
         gl::DeleteShader(fragment_shader);
         shader_program
     };
+    
+    let vertex_color_location = unsafe {
+        let c_str = CString::new("ourColor").unwrap();
+        gl::GetUniformLocation(shader_program, c_str.as_ptr())
+    };
 
 
     let vertices: [f32; 12] = [
@@ -103,7 +113,7 @@ fn main() {
         -0.5,  0.5, 0.0 
     ];
     
-    let indices: [i32; 6] = [
+    let indices: [u32; 6] = [
         0, 1, 3, //Primeiro triangulo
         1, 2, 3 // segundo triangulo
     ];
@@ -133,7 +143,7 @@ fn main() {
         gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
         gl::BufferData(
             gl::ELEMENT_ARRAY_BUFFER,
-            (indices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
+            (indices.len() * std::mem::size_of::<u32>()) as gl::types::GLsizeiptr,
             indices.as_ptr() as *const _,
             gl::STATIC_DRAW
         );
@@ -149,6 +159,7 @@ fn main() {
         );
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::EnableVertexAttribArray(0);
+        //gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE)
 
     }
 
@@ -156,27 +167,45 @@ fn main() {
 
     event_loop.run(move |event, _ , control_flow| { //??????
 
-        *control_flow = ControlFlow::Wait;
+        *control_flow = ControlFlow::Poll;
 
         match event {
-            Event::LoopDestroyed => (),
+            Event::LoopDestroyed => {
+                return;
+            },
             Event::WindowEvent {event, ..} => match event {
-                WindowEvent::Resized(physical_size)  => gl_context.resize(physical_size),
+                WindowEvent::Resized(physical_size)  => {
+                    gl_context.resize(physical_size);
+
+                    unsafe {
+                        gl::Viewport(0, 0, physical_size.width as i32, physical_size.height as i32);
+                    }
+                },
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                 _ => (),
 
             },
             Event::RedrawRequested(_) => {
+
+                let time_value = start_time.elapsed().as_secs_f32();
+                let green_value = (time_value.sin() / 2.0) + 0.5;
+
                 unsafe {
-                    gl::ClearColor(0.0, 0.0, 1.0, 1.0);
+                    gl::ClearColor(0.2, 0.3, 0.3, 1.0);
                     gl::Clear(gl::COLOR_BUFFER_BIT);
 
 
                     gl::UseProgram(shader_program);
+
+                    gl::Uniform4f(vertex_color_location, 0.0, green_value, 0.0, 1.0);
+
                     gl::BindVertexArray(vao);
                     gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
                 }
                 gl_context.swap_buffers().unwrap();
+            }
+            Event::MainEventsCleared => {
+                gl_context.window().request_redraw();
             }
             _ => (),
         }
