@@ -96,21 +96,29 @@ fn main() {
     };
 
 
-    let vertices: [f32; 9] = [
-        -0.5, -0.5 , 0.0, //left
-         0.5, -0.5 , 0.0, //right
-         0.0,  0.5 , 0.0  //top
+    let vertices: [f32; 12] = [
+         0.5,  0.5, 0.0,
+         0.5, -0.5, 0.0, 
+        -0.5, -0.5, 0.0,
+        -0.5,  0.5, 0.0 
+    ];
+    
+    let indices: [i32; 6] = [
+        0, 1, 3, //Primeiro triangulo
+        1, 2, 3 // segundo triangulo
     ];
 
      //Inicia duas variáveis mutáveis e elas vão ser reescritas por funções do opengl, então não importa o valor inicial.
     let mut vao: u32 = 0;
     let mut vbo: u32 = 0;
+    let mut ebo: u32 = 0;
 
     unsafe {
         gl::GenVertexArrays(1, & mut vao);
         gl::GenBuffers(1, &mut vbo); //Cria 1 unidade de buffer e atribui um id à vbo para o buffer
         //gerado
-        
+        gl::GenBuffers(1, &mut ebo);
+
         gl::BindVertexArray(vao);
 
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo); //A partir deste ponto, qualquer chamada de buffer
@@ -122,6 +130,15 @@ fn main() {
             gl::STATIC_DRAW
         );
 
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+        gl::BufferData(
+            gl::ELEMENT_ARRAY_BUFFER,
+            (indices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
+            indices.as_ptr() as *const _,
+            gl::STATIC_DRAW
+        );
+        
+
         gl::VertexAttribPointer( //Em relação ao current bounded buffer
             0, //layout (location = 0)
             3, // size (vec3)
@@ -130,6 +147,7 @@ fn main() {
             (3 * std::mem::size_of::<f32>()) as gl::types::GLint, //strinde
             ptr::null(), //offset (posição os os dados começam no buffer)
         );
+        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::EnableVertexAttribArray(0);
 
     }
@@ -156,7 +174,7 @@ fn main() {
 
                     gl::UseProgram(shader_program);
                     gl::BindVertexArray(vao);
-                    gl::DrawArrays(gl::TRIANGLES,0 ,3);
+                    gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
                 }
                 gl_context.swap_buffers().unwrap();
             }
