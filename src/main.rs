@@ -8,12 +8,15 @@ use glutin::{Api, ContextBuilder, GlRequest};
 
 use std::ptr;
 
-
+use cgmath::{Matrix4, Vector3, Deg, SquareMatrix};
+use std::time::Instant;
 
 
 
 fn main() {
     
+    let start_time = Instant::now();
+
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new().with_title("LWA-Graphics-Engine");
 
@@ -33,7 +36,7 @@ fn main() {
     // obs: r#" "# é uma raw string literal. Não é necessário \n ou \". A string aparece exatamente
     // como está entre aspas
 
-    let shader = Shader::new("src/shader.vs", "src/shader.fs")
+    let shader = Shader::new("src/shader_transform.vs", "src/shader.fs")
         .expect("Failed to create shaders");
 
 
@@ -64,7 +67,6 @@ fn main() {
             gl::STATIC_DRAW
         );
 
-        
         let stride =(6 * std::mem::size_of::<f32>()) as gl::types::GLint;//strinde
 
         gl::VertexAttribPointer( //Em relação ao current bounded buffer
@@ -119,6 +121,12 @@ fn main() {
             },
             Event::RedrawRequested(_) => {
 
+                let time_value = start_time.elapsed().as_secs_f32();
+
+                let mut transform = Matrix4::identity();
+
+                transform = transform * Matrix4::from_translation(Vector3::new(0.5, -0.5, 0.0));
+                transform = transform * Matrix4::from_angle_z(Deg(time_value * 50.0));
 
                 unsafe {
                     gl::ClearColor(0.2, 0.3, 0.3, 1.0);
@@ -126,6 +134,7 @@ fn main() {
 
 
                     shader.use_program();
+                    shader.set_mat4("transform", &transform);
 
                     gl::BindVertexArray(vao);
                     gl::DrawArrays(gl::TRIANGLES, 0, 3)

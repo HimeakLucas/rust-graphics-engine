@@ -3,6 +3,8 @@ use std::ffi::CString;
 use std::fs; //fylesystem
 use std::ptr;
 
+use cgmath::{Matrix, Matrix4};
+
 pub struct Shader {
     pub id: gl::types::GLuint,
 }
@@ -70,6 +72,19 @@ impl Shader {
         unsafe {
             gl::Uniform1f(gl::GetUniformLocation(self.id, c_name.as_ptr()), value);
         }
+    }
+
+    pub fn set_mat4(&self, name: &str, mat: &Matrix4<f32>) {
+
+        let c_name = CString::new(name).unwrap();
+        unsafe {
+            gl::UniformMatrix4fv(
+                gl::GetUniformLocation(self.id, c_name.as_ptr()),
+                1,
+                gl::FALSE,
+                mat.as_ptr(), //cgmath já usa o mesmo layout de memória que o OpenGL espera
+            );
+       }
     }
 
     unsafe fn check_compile_errors(shader_id: u32, shader_type: &str) -> Result<(), String> {
