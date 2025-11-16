@@ -1,37 +1,15 @@
+mod shader;
+use shader::Shader;
+
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::WindowBuilder;
 use glutin::{Api, ContextBuilder, GlRequest};
 
-use std::ffi::CString; //representa uma owned string compatível com C. Facilita a interação com
-//códiogo C de maneira segura (com funções estrangeiras (Foreign Function Interface = FFI))
 use std::ptr;
 
-mod shader;
-use shader::Shader;
 
-const VERTEX_SHADER_SOURCE: &str = r#" 
-    #version 330 core
-    layout (location = 0) in vec3 aPos;
-    layout (location = 1) in vec3 aColor;
 
-    out vec3 ourColor;
-
-    void main() {
-        gl_Position = vec4(aPos, 1.0);
-        ourColor = aColor;
-    }
-    "#;
-
-const FRAGMENT_SHADER_SOURCE: &str = r#"
-    #version 330 core
-    out vec4 FragColor;
-    in vec3 ourColor;
-
-    void main() {
-        FragColor = vec4(ourColor, 1.0);
-    }
-    "#;
 
 
 fn main() {
@@ -55,56 +33,8 @@ fn main() {
     // obs: r#" "# é uma raw string literal. Não é necessário \n ou \". A string aparece exatamente
     // como está entre aspas
 
-    let shader_program = unsafe {
-        let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
-        let c_str_vert = CString::new(VERTEX_SHADER_SOURCE.as_bytes()).unwrap(); //Transforma a string
-        //Rust em uma string compatível com C. (Adiciona, por exemplo o \0 no final da string)
-        gl::ShaderSource(vertex_shader, 1, &c_str_vert.as_ptr(), ptr::null()); //Segundo argumento significa quantas
-        //strings estamos passando como source code.
-        gl::CompileShader(vertex_shader);
-
-        let mut success = gl::FALSE as gl::types::GLint;
-        let mut info_log = Vec::with_capacity(512);
-        info_log.set_len(512 - 1); //Subtrai 1 para o terminador nulo \0
-        gl::GetShaderiv(vertex_shader, gl::COMPILE_STATUS, &mut success);
-        if success != gl::TRUE as gl::types::GLint {
-            gl::GetShaderInfoLog(vertex_shader, 512, ptr::null_mut(), info_log.as_mut_ptr() as *mut gl::types::GLchar);
-            println!("ERRO::SHADER::{}::COMPILAÇÃO_FALHOU\n{}", "VERTEX", String::from_utf8_lossy(&info_log));
-        }
-
-        let fragment_shader = gl::CreateShader(gl::FRAGMENT_SHADER);
-        let c_str_frag = CString::new(FRAGMENT_SHADER_SOURCE.as_bytes()).unwrap();
-        gl::ShaderSource(fragment_shader, 1, &c_str_frag.as_ptr(), ptr::null());
-        gl::CompileShader(fragment_shader);
-
-        let mut success = gl::FALSE as gl::types::GLint;
-        let mut info_log = Vec::with_capacity(512);
-        info_log.set_len(512 - 1); //Subtrai 1 para o terminador nulo \0
-        gl::GetShaderiv(fragment_shader, gl::COMPILE_STATUS, &mut success);
-        if success != gl::TRUE as gl::types::GLint {
-            gl::GetShaderInfoLog(fragment_shader, 512, ptr::null_mut(), info_log.as_mut_ptr() as *mut gl::types::GLchar);
-            println!("ERRO::SHADER::{}::COMPILAÇÃO_FALHOU\n{}", "FRAGMENT", String::from_utf8_lossy(&info_log));
-        }
-
-        let shader_program = gl::CreateProgram();
-        gl::AttachShader(shader_program, vertex_shader);
-        gl::AttachShader(shader_program, fragment_shader);
-        gl::LinkProgram(shader_program);
-
-        let mut success = gl::FALSE as gl::types::GLint;
-        let mut info_log = Vec::with_capacity(512);
-        info_log.set_len(512 - 1); //Subtrai 1 para o terminador nulo \0
-        gl::GetProgramiv(shader_program, gl::LINK_STATUS, &mut success);
-        if success != gl::TRUE as gl::types::GLint {
-            gl::GetShaderInfoLog(fragment_shader, 512, ptr::null_mut(), info_log.as_mut_ptr() as *mut gl::types::GLchar);
-            println!("ERRO::PROGRAM::{}::LINK_FALHOU\n{}", "PROGRAM" ,String::from_utf8_lossy(&info_log));
-        }
-
-        gl::DeleteShader(vertex_shader);
-        gl::DeleteShader(fragment_shader);
-        shader_program
-    };
-    
+    let shader = Shader::new("src/shader.vs", "src/shader.fs")
+        .expect("Failed to create shaders");
 
 
     let vertices: [f32; 18] = [
@@ -112,7 +42,6 @@ fn main() {
         -0.5, -0.5,  0.0,     0.0, 1.0, 0.0,
          0.0,  0.5,  0.0,     0.0, 0.0, 1.0,
     ];
-
 
 
      //Inicia duas variáveis mutáveis e elas vão ser reescritas por funções do opengl, então não importa o valor inicial.
@@ -169,6 +98,11 @@ fn main() {
 
         match event {
             Event::LoopDestroyed => {
+
+                unsafe {
+                    gl::DeleteVertexArrays(1, &vao);
+                    gl::DeleteBuffers(1, &vbo);
+                }
                 return;
             },
             Event::WindowEvent {event, ..} => match event {
@@ -191,8 +125,7 @@ fn main() {
                     gl::Clear(gl::COLOR_BUFFER_BIT);
 
 
-                    gl::UseProgram(shader_program);
-
+                    shader.use_program();
 
                     gl::BindVertexArray(vao);
                     gl::DrawArrays(gl::TRIANGLES, 0, 3)

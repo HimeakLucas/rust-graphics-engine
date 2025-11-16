@@ -73,26 +73,28 @@ impl Shader {
     }
 
     unsafe fn check_compile_errors(shader_id: u32, shader_type: &str) -> Result<(), String> {
-        let mut success = gl::FALSE as gl::types::GLint;
-        let mut info_log = Vec::with_capacity(1024);
-        info_log.set_len(1024 - 1); //subtrai 1 para o terminador nulo \0
+        unsafe {
+            let mut success = gl::FALSE as gl::types::GLint;
+            let mut info_log = Vec::with_capacity(1024);
+            info_log.set_len(1024 - 1); //subtrai 1 para o terminador nulo \0
 
-        if shader_type != "PROGRAM" {
-            gl::GetShaderiv(shader_id, gl::COMPILE_STATUS, &mut success);
-            if success != gl::TRUE as gl::types::GLint {
-                gl::GetShaderInfoLog(shader_id, 1024, ptr::null_mut(), info_log.as_mut_ptr() as *mut gl::types::GLchar);
-                let error_message = String::from_utf8_lossy(&info_log).to_string();
-                return Err(format!("ERRO::SHADER_COMPILATION_ERROR ({}):\n{}", shader_type, error_message));
-            }
-        } else {
-            gl::GetProgramiv(shader_id, gl::LINK_STATUS, &mut success);
-            if success != gl::TRUE as gl::types::GLint {
-                gl::GetProgramInfoLog(shader_id, 1024, ptr::null_mut(), info_log.as_mut_ptr() as *mut gl::types::GLchar);
-                let error_message = String::from_utf8_lossy(&info_log).to_string();
-                return Err(format!("ERRO::PROGRAM_LINKING_ERROR ({}):\n{}", shader_type, error_message));
-            }
-        } 
-        Ok(())
+            if shader_type != "PROGRAM" {
+                gl::GetShaderiv(shader_id, gl::COMPILE_STATUS, &mut success);
+                if success != gl::TRUE as gl::types::GLint {
+                    gl::GetShaderInfoLog(shader_id, 1024, ptr::null_mut(), info_log.as_mut_ptr() as *mut gl::types::GLchar);
+                    let error_message = String::from_utf8_lossy(&info_log).to_string();
+                    return Err(format!("ERRO::SHADER_COMPILATION_ERROR ({}):\n{}", shader_type, error_message));
+                }
+            } else {
+                gl::GetProgramiv(shader_id, gl::LINK_STATUS, &mut success);
+                if success != gl::TRUE as gl::types::GLint {
+                    gl::GetProgramInfoLog(shader_id, 1024, ptr::null_mut(), info_log.as_mut_ptr() as *mut gl::types::GLchar);
+                    let error_message = String::from_utf8_lossy(&info_log).to_string();
+                    return Err(format!("ERRO::PROGRAM_LINKING_ERROR ({}):\n{}", shader_type, error_message));
+                }
+            } 
+            Ok(())
+        }
     }
 
 }
