@@ -6,7 +6,9 @@ use glutin::{Api, ContextBuilder, GlRequest};
 use std::ffi::CString; //representa uma owned string compatível com C. Facilita a interação com
 //códiogo C de maneira segura (com funções estrangeiras (Foreign Function Interface = FFI))
 use std::ptr;
-use std::time::Instant;
+
+mod shader;
+use shader::Shader;
 
 const VERTEX_SHADER_SOURCE: &str = r#" 
     #version 330 core
@@ -34,7 +36,6 @@ const FRAGMENT_SHADER_SOURCE: &str = r#"
 
 fn main() {
     
-    let start_time = Instant::now();
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new().with_title("LWA-Graphics-Engine");
 
