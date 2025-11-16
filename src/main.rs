@@ -11,19 +11,23 @@ use std::time::Instant;
 const VERTEX_SHADER_SOURCE: &str = r#" 
     #version 330 core
     layout (location = 0) in vec3 aPos;
+    layout (location = 1) in vec3 aColor;
+
+    out vec3 ourColor;
+
     void main() {
-        gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+        gl_Position = vec4(aPos, 1.0);
+        ourColor = aColor;
     }
     "#;
 
 const FRAGMENT_SHADER_SOURCE: &str = r#"
     #version 330 core
     out vec4 FragColor;
-
-    uniform vec4 ourColor;
+    in vec3 ourColor;
 
     void main() {
-        FragColor = ourColor;
+        FragColor = vec4(ourColor, 1.0);
     }
     "#;
 
@@ -100,34 +104,24 @@ fn main() {
         shader_program
     };
     
-    let vertex_color_location = unsafe {
-        let c_str = CString::new("ourColor").unwrap();
-        gl::GetUniformLocation(shader_program, c_str.as_ptr())
-    };
 
 
-    let vertices: [f32; 12] = [
-         0.5,  0.5, 0.0,
-         0.5, -0.5, 0.0, 
-        -0.5, -0.5, 0.0,
-        -0.5,  0.5, 0.0 
+    let vertices: [f32; 18] = [
+         0.5, -0.5,  0.0,     1.0, 0.0, 0.0,
+        -0.5, -0.5,  0.0,     0.0, 1.0, 0.0,
+         0.0,  0.5,  0.0,     0.0, 0.0, 1.0,
     ];
-    
-    let indices: [u32; 6] = [
-        0, 1, 3, //Primeiro triangulo
-        1, 2, 3 // segundo triangulo
-    ];
+
+
 
      //Inicia duas variáveis mutáveis e elas vão ser reescritas por funções do opengl, então não importa o valor inicial.
     let mut vao: u32 = 0;
     let mut vbo: u32 = 0;
-    let mut ebo: u32 = 0;
 
     unsafe {
         gl::GenVertexArrays(1, & mut vao);
         gl::GenBuffers(1, &mut vbo); //Cria 1 unidade de buffer e atribui um id à vbo para o buffer
         //gerado
-        gl::GenBuffers(1, &mut ebo);
 
         gl::BindVertexArray(vao);
 
@@ -140,25 +134,28 @@ fn main() {
             gl::STATIC_DRAW
         );
 
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
-        gl::BufferData(
-            gl::ELEMENT_ARRAY_BUFFER,
-            (indices.len() * std::mem::size_of::<u32>()) as gl::types::GLsizeiptr,
-            indices.as_ptr() as *const _,
-            gl::STATIC_DRAW
-        );
         
+        let stride =(6 * std::mem::size_of::<f32>()) as gl::types::GLint;//strinde
 
         gl::VertexAttribPointer( //Em relação ao current bounded buffer
             0, //layout (location = 0)
             3, // size (vec3)
             gl::FLOAT,
             gl::FALSE, //Os dados já estão normalizados, então False para a normalizalção
-            (3 * std::mem::size_of::<f32>()) as gl::types::GLint, //strinde
+            stride,
             ptr::null(), //offset (posição os os dados começam no buffer)
         );
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::EnableVertexAttribArray(0);
+
+        gl::VertexAttribPointer( //Em relação ao current bounded buffer
+            1, //layout (location = 0)
+            3, // size (vec3)
+            gl::FLOAT,
+            gl::FALSE, //Os dados já estão normalizados, então False para a normalizalção
+            stride,
+            (3 * std::mem::size_of::<f32>()) as *const _,
+        );
+        gl::EnableVertexAttribArray(1);
         //gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE)
 
     }
@@ -187,8 +184,6 @@ fn main() {
             },
             Event::RedrawRequested(_) => {
 
-                let time_value = start_time.elapsed().as_secs_f32();
-                let green_value = (time_value.sin() / 2.0) + 0.5;
 
                 unsafe {
                     gl::ClearColor(0.2, 0.3, 0.3, 1.0);
@@ -197,10 +192,9 @@ fn main() {
 
                     gl::UseProgram(shader_program);
 
-                    gl::Uniform4f(vertex_color_location, 0.0, green_value, 0.0, 1.0);
 
                     gl::BindVertexArray(vao);
-                    gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, std::ptr::null());
+                    gl::DrawArrays(gl::TRIANGLES, 0, 3)
                 }
                 gl_context.swap_buffers().unwrap();
             }
