@@ -8,7 +8,7 @@ use glutin::{Api, ContextBuilder, GlRequest};
 
 use std::ptr;
 
-use cgmath::{Matrix4, Vector3, Deg, SquareMatrix};
+use cgmath::{Matrix4, Vector3, Deg, SquareMatrix, Matrix, perspective};
 use std::time::Instant;
 
 
@@ -33,17 +33,58 @@ fn main() {
 
     gl::load_with(|ptr| gl_context.get_proc_address(ptr) as *const _);
 
+    unsafe {
+        gl::Enable(gl::DEPTH_TEST);
+    }
     // obs: r#" "# é uma raw string literal. Não é necessário \n ou \". A string aparece exatamente
     // como está entre aspas
 
-    let shader = Shader::new("src/shader_transform.vs", "src/shader.fs")
+    let shader = Shader::new("src/solid_color.vs", "src/solid_color.fs")
         .expect("Failed to create shaders");
 
 
-    let vertices: [f32; 18] = [
-         0.5, -0.5,  0.0,     1.0, 0.0, 0.0,
-        -0.5, -0.5,  0.0,     0.0, 1.0, 0.0,
-         0.0,  0.5,  0.0,     0.0, 0.0, 1.0,
+let vertices: [f32; 108] = [ // 36 vértices * 3 floats (posição)
+        -0.5, -0.5, -0.5,
+         0.5, -0.5, -0.5,
+         0.5,  0.5, -0.5,
+         0.5,  0.5, -0.5,
+        -0.5,  0.5, -0.5,
+        -0.5, -0.5, -0.5,
+
+        -0.5, -0.5,  0.5,
+         0.5, -0.5,  0.5,
+         0.5,  0.5,  0.5,
+         0.5,  0.5,  0.5,
+        -0.5,  0.5,  0.5,
+        -0.5, -0.5,  0.5,
+
+        -0.5,  0.5,  0.5,
+        -0.5,  0.5, -0.5,
+        -0.5, -0.5, -0.5,
+        -0.5, -0.5, -0.5,
+        -0.5, -0.5,  0.5,
+        -0.5,  0.5,  0.5,
+
+         0.5,  0.5,  0.5,
+         0.5,  0.5, -0.5,
+         0.5, -0.5, -0.5,
+         0.5, -0.5, -0.5,
+         0.5, -0.5,  0.5,
+         0.5,  0.5,  0.5,
+
+        -0.5, -0.5, -0.5,
+         0.5, -0.5, -0.5,
+         0.5, -0.5,  0.5,
+         0.5, -0.5,  0.5,
+        -0.5, -0.5,  0.5,
+        -0.5, -0.5, -0.5,
+
+        -0.5,  0.5, -0.5,
+         0.5,  0.5, -0.5,
+         0.5,  0.5,  0.5,
+         0.5,  0.5,  0.5,
+        -0.5,  0.5,  0.5,
+        -0.5,  0.5, -0.5,
     ];
 
 
@@ -67,7 +108,7 @@ fn main() {
             gl::STATIC_DRAW
         );
 
-        let stride =(6 * std::mem::size_of::<f32>()) as gl::types::GLint;//strinde
+        let stride =(3 * std::mem::size_of::<f32>()) as gl::types::GLint;//strinde
 
         gl::VertexAttribPointer( //Em relação ao current bounded buffer
             0, //layout (location = 0)
@@ -79,15 +120,6 @@ fn main() {
         );
         gl::EnableVertexAttribArray(0);
 
-        gl::VertexAttribPointer( //Em relação ao current bounded buffer
-            1, //layout (location = 0)
-            3, // size (vec3)
-            gl::FLOAT,
-            gl::FALSE, //Os dados já estão normalizados, então False para a normalizalção
-            stride,
-            (3 * std::mem::size_of::<f32>()) as *const _,
-        );
-        gl::EnableVertexAttribArray(1);
         //gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE)
 
     }
@@ -123,21 +155,23 @@ fn main() {
 
                 let time_value = start_time.elapsed().as_secs_f32();
 
-                let mut transform = Matrix4::identity();
-
-                transform = transform * Matrix4::from_translation(Vector3::new(0.5, -0.5, 0.0));
-                transform = transform * Matrix4::from_angle_z(Deg(time_value * 50.0));
-
                 unsafe {
                     gl::ClearColor(0.2, 0.3, 0.3, 1.0);
-                    gl::Clear(gl::COLOR_BUFFER_BIT);
+                    gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
 
                     shader.use_program();
-                    shader.set_mat4("transform", &transform);
+                    let mut model = Matrix4::from_angle_x(Deg(time_value * 50.0));
+                    model = model * Matrix4::from_angle_y(Deg(time_value * 30.0));
+                    let view = Matrix4::from_translation(Vector3::new(0.0, 0.0, -3.0));
+                    let projection = perspective(Deg(45.0), 800.0 / 600.0, 0.1, 100.0);
+
+                    shader.set_mat4("model", &model);
+                    shader.set_mat4("view", &view);
+                    shader.set_mat4("projection", &projection);
 
                     gl::BindVertexArray(vao);
-                    gl::DrawArrays(gl::TRIANGLES, 0, 3)
+                    gl::DrawArrays(gl::TRIANGLES, 0, 36);
                 }
                 gl_context.swap_buffers().unwrap();
             }
