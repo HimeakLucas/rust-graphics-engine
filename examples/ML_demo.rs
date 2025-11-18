@@ -27,7 +27,7 @@ fn main() {
     let shader = Shader::new("src/solid_color.vs", "src/solid_color.fs")
         .expect("Failed to create shaders");
 
-    // ⬇️ NEW: Load your OBJ model here
+    // Pass model Path here!
     let model = Model::load("Assets/miku.obj")
         .expect("Failed to load model");
 
