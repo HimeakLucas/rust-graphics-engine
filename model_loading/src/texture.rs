@@ -20,7 +20,7 @@ impl Texture {
             gl::BindTexture(gl::TEXTURE_2D, id);
 
             gl::TexImage2D(
-                gl::TEXTURE_2D, 0, gl::RGBA as i32, 
+                gl::TEXTURE_2D, 0, gl::RGB as i32, 
                 width as i32, height as i32, 0, 
                 gl::RGBA, gl::UNSIGNED_BYTE, data.as_ptr() as *const _,
             );

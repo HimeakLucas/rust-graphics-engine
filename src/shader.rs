@@ -53,6 +53,7 @@ impl Shader {
         }
     }
 
+    #[allow(dead_code)]
     pub fn set_bool(&self, name: &str, value: bool) {
         let c_name = CString::new(name).unwrap();
         unsafe {
@@ -60,6 +61,7 @@ impl Shader {
         }
     }
 
+    #[allow(dead_code)]
     pub fn set_int(&self, name: &str, value: i32) {
         let c_name = CString::new(name).unwrap();
         unsafe {
@@ -67,6 +69,7 @@ impl Shader {
         }
     }
 
+    #[allow(dead_code)]
     pub fn set_float(&self, name: &str,  value: f32) {
         let c_name = CString::new(name).unwrap();
         unsafe {
