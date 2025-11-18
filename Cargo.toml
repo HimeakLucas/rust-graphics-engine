@@ -7,3 +7,5 @@ edition = "2024"
 cgmath = "0.18.0"
 gl = "0.14.0"
 glutin = "0.29.1"
+model_loading = { path = "./model_loading" }
+
