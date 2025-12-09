@@ -39,9 +39,11 @@ fn main() {
     // obs: r#" "# é uma raw string literal. Não é necessário \n ou \". A string aparece exatamente
     // como está entre aspas
 
-    let shader = Shader::new("src/solid_color.vs", "src/solid_color.fs")
-        .expect("Failed to create shaders");
+    let lighting_shader = Shader::new("src/1.colors.vs", "src/1.colors.fs")
+        .expect("Failed to create lighting shader");
 
+    let light_cube_shader = Shader::new("src/1.light_cube.vs", "src/1.light_cube.fs")
+        .expect("Failed to create light cube shader");
 
 let vertices: [f32; 108] = [ // 36 vértices * 3 floats (posição)
         -0.5, -0.5, -0.5,
@@ -89,15 +91,13 @@ let vertices: [f32; 108] = [ // 36 vértices * 3 floats (posição)
 
 
      //Inicia duas variáveis mutáveis e elas vão ser reescritas por funções do opengl, então não importa o valor inicial.
-    let mut vao: u32 = 0;
     let mut vbo: u32 = 0;
+    let mut cube_vao: u32 = 0;
+    let mut light_cube_vao: u32 = 0;
 
     unsafe {
-        gl::GenVertexArrays(1, & mut vao);
-        gl::GenBuffers(1, &mut vbo); //Cria 1 unidade de buffer e atribui um id à vbo para o buffer
-        //gerado
 
-        gl::BindVertexArray(vao);
+        gl::GenBuffers(1, &mut vbo); //Cria 1 unidade de buffer e atribui um id à vbo para o buffer gerado
 
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo); //A partir deste ponto, qualquer chamada de buffer
         //vai ser usada para configurar o atual bound buffer.
@@ -108,7 +108,27 @@ let vertices: [f32; 108] = [ // 36 vértices * 3 floats (posição)
             gl::STATIC_DRAW
         );
 
+        //Cubo principal
+        gl::GenVertexArrays(1, &mut cube_vao);
+        gl::BindVertexArray(cube_vao);
+
         let stride =(3 * std::mem::size_of::<f32>()) as gl::types::GLint;//strinde
+        gl::VertexAttribPointer( //Em relação ao current bounded buffer
+            0, //layout (location = 0)
+            3, // size (vec3)
+            gl::FLOAT,
+            gl::FALSE, //Os dados já estão normalizados, então False para a normalizalção
+            stride,
+            ptr::null(), //offset (posição os os dados começam no buffer)
+        );
+        gl::EnableVertexAttribArray(0);
+
+        //Cubo de luz
+        gl::GenVertexArrays(1, &mut light_cube_vao);
+        gl::BindVertexArray(light_cube_vao);
+
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+        //gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE)
 
         gl::VertexAttribPointer( //Em relação ao current bounded buffer
             0, //layout (location = 0)
@@ -120,11 +140,9 @@ let vertices: [f32; 108] = [ // 36 vértices * 3 floats (posição)
         );
         gl::EnableVertexAttribArray(0);
 
-        //gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE)
-
     }
 
-
+    let light_pos = Vector3::new(1.2, 1.0, 2.0);
 
     event_loop.run(move |event, _ , control_flow| { //??????
 
@@ -134,7 +152,8 @@ let vertices: [f32; 108] = [ // 36 vértices * 3 floats (posição)
             Event::LoopDestroyed => {
 
                 unsafe {
-                    gl::DeleteVertexArrays(1, &vao);
+                    gl::DeleteVertexArrays(1, &cube_vao);
+                    gl::DeleteVertexArrays(1, &light_cube_vao);
                     gl::DeleteBuffers(1, &vbo);
                 }
                 return;
@@ -156,22 +175,42 @@ let vertices: [f32; 108] = [ // 36 vértices * 3 floats (posição)
                 let time_value = start_time.elapsed().as_secs_f32();
 
                 unsafe {
-                    gl::ClearColor(0.2, 0.3, 0.3, 1.0);
+                    gl::ClearColor(0.1, 0.1, 0.1, 1.0);
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
+                    //desenha o cubo principal
+                    lighting_shader.use_program();
+                    lighting_shader.set_vec3("objectColor", &Vector3::new(1.0, 0.5, 0.31));
+                    lighting_shader.set_vec3("lightColor", &Vector3::new(1.0, 1.0, 1.0));
 
-                    shader.use_program();
+
                     let mut model = Matrix4::from_angle_x(Deg(time_value * 50.0));
                     model = model * Matrix4::from_angle_y(Deg(time_value * 30.0));
-                    let view = Matrix4::from_translation(Vector3::new(0.0, 0.0, -3.0));
+                    let view = Matrix4::from_translation(Vector3::new(0.0, 0.0, -6.0));
                     let projection = perspective(Deg(45.0), 800.0 / 600.0, 0.1, 100.0);
 
-                    shader.set_mat4("model", &model);
-                    shader.set_mat4("view", &view);
-                    shader.set_mat4("projection", &projection);
+                    lighting_shader.set_mat4("model", &model);
+                    lighting_shader.set_mat4("view", &view);
+                    lighting_shader.set_mat4("projection", &projection);
 
-                    gl::BindVertexArray(vao);
+                    gl::BindVertexArray(cube_vao);
                     gl::DrawArrays(gl::TRIANGLES, 0, 36);
+
+                    //desenha o cubo lampada
+                    light_cube_shader.use_program();
+                    light_cube_shader.set_mat4("projection", &projection);
+                    light_cube_shader.set_mat4("view", &view);
+
+                    //aplica uma transformação que primeiro move a lampada do centro e demois
+                    //reescala
+                    let mut model = Matrix4::from_translation(light_pos);
+                    model = model * Matrix4::from_scale(0.2);
+
+                    light_cube_shader.set_mat4("model", &model);
+
+                    gl::BindVertexArray(light_cube_vao);
+                    gl::DrawArrays(gl::TRIANGLES, 0, 36)
+
                 }
                 gl_context.swap_buffers().unwrap();
             }

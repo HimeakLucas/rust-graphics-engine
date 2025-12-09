@@ -3,7 +3,7 @@ use std::ffi::CString;
 use std::fs; //fylesystem
 use std::ptr;
 
-use cgmath::{Matrix, Matrix4};
+use cgmath::{Matrix, Matrix4, Vector3, Array};
 
 pub struct Shader {
     pub id: gl::types::GLuint,
@@ -88,6 +88,17 @@ impl Shader {
                 mat.as_ptr(), //cgmath já usa o mesmo layout de memória que o OpenGL espera
             );
        }
+    }
+
+    pub fn set_vec3(&self, name: &str, value: &Vector3<f32>) {
+        let c_name = CString::new(name).unwrap();
+        unsafe {
+            gl::Uniform3fv(
+                gl::GetUniformLocation(self.id, c_name.as_ptr()),
+                1,
+                value.as_ptr(),
+            ); 
+        }
     }
 
     unsafe fn check_compile_errors(shader_id: u32, shader_type: &str) -> Result<(), String> {
