@@ -8,7 +8,7 @@ use glutin::{Api, ContextBuilder, GlRequest};
 
 use std::ptr;
 
-use cgmath::{Matrix4, Vector3, Deg, SquareMatrix, Matrix, perspective};
+use cgmath::{Matrix3, Matrix4, Vector3, Deg, SquareMatrix, Matrix, perspective};
 use std::time::Instant;
 
 
@@ -39,56 +39,59 @@ fn main() {
     // obs: r#" "# é uma raw string literal. Não é necessário \n ou \". A string aparece exatamente
     // como está entre aspas
 
-    let lighting_shader = Shader::new("src/1.colors.vs", "src/1.colors.fs")
+    //let lighting_shader = Shader::new("src/1.colors.vs", "src/1.colors.fs")
+    //    .expect("Failed to create lighting shader");
+
+    let lighting_shader = Shader::new("src/basic_lighting.vs", "src/basic_lighting.fs")
         .expect("Failed to create lighting shader");
 
     let light_cube_shader = Shader::new("src/1.light_cube.vs", "src/1.light_cube.fs")
         .expect("Failed to create light cube shader");
 
-let vertices: [f32; 108] = [ // 36 vértices * 3 floats (posição)
-        -0.5, -0.5, -0.5,
-         0.5, -0.5, -0.5,
-         0.5,  0.5, -0.5,
-         0.5,  0.5, -0.5,
-        -0.5,  0.5, -0.5,
-        -0.5, -0.5, -0.5,
+//Vertices e normais
+let vertices: [f32; 216] = [
+        -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
+         0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
+         0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
+         0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
+        -0.5,  0.5, -0.5,  0.0,  0.0, -1.0,
+        -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
 
-        -0.5, -0.5,  0.5,
-         0.5, -0.5,  0.5,
-         0.5,  0.5,  0.5,
-         0.5,  0.5,  0.5,
-        -0.5,  0.5,  0.5,
-        -0.5, -0.5,  0.5,
+        -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
+         0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
+         0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
+         0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
+        -0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
+        -0.5, -0.5,  0.5,  0.0,  0.0,  1.0,
 
-        -0.5,  0.5,  0.5,
-        -0.5,  0.5, -0.5,
-        -0.5, -0.5, -0.5,
-        -0.5, -0.5, -0.5,
-        -0.5, -0.5,  0.5,
-        -0.5,  0.5,  0.5,
+        -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
+        -0.5,  0.5, -0.5, -1.0,  0.0,  0.0,
+        -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
+        -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
+        -0.5, -0.5,  0.5, -1.0,  0.0,  0.0,
+        -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
 
-         0.5,  0.5,  0.5,
-         0.5,  0.5, -0.5,
-         0.5, -0.5, -0.5,
-         0.5, -0.5, -0.5,
-         0.5, -0.5,  0.5,
-         0.5,  0.5,  0.5,
+         0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
+         0.5,  0.5, -0.5,  1.0,  0.0,  0.0,
+         0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
+         0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
+         0.5, -0.5,  0.5,  1.0,  0.0,  0.0,
+         0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
 
-        -0.5, -0.5, -0.5,
-         0.5, -0.5, -0.5,
-         0.5, -0.5,  0.5,
-         0.5, -0.5,  0.5,
-        -0.5, -0.5,  0.5,
-        -0.5, -0.5, -0.5,
+        -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
+         0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
+         0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
+         0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
+        -0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
+        -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
 
-        -0.5,  0.5, -0.5,
-         0.5,  0.5, -0.5,
-         0.5,  0.5,  0.5,
-         0.5,  0.5,  0.5,
-        -0.5,  0.5,  0.5,
-        -0.5,  0.5, -0.5,
+        -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
+         0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
+         0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+         0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+        -0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+        -0.5,  0.5, -0.5,  0.0,  1.0,  0.0
     ];
-
 
      //Inicia duas variáveis mutáveis e elas vão ser reescritas por funções do opengl, então não importa o valor inicial.
     let mut vbo: u32 = 0;
@@ -112,7 +115,7 @@ let vertices: [f32; 108] = [ // 36 vértices * 3 floats (posição)
         gl::GenVertexArrays(1, &mut cube_vao);
         gl::BindVertexArray(cube_vao);
 
-        let stride =(3 * std::mem::size_of::<f32>()) as gl::types::GLint;//strinde
+        let stride =(6 * std::mem::size_of::<f32>()) as gl::types::GLint;//strinde
         gl::VertexAttribPointer( //Em relação ao current bounded buffer
             0, //layout (location = 0)
             3, // size (vec3)
@@ -122,6 +125,18 @@ let vertices: [f32; 108] = [ // 36 vértices * 3 floats (posição)
             ptr::null(), //offset (posição os os dados começam no buffer)
         );
         gl::EnableVertexAttribArray(0);
+
+        let offset = (3 * std::mem::size_of::<f32>()) as *const _ ;
+        gl::VertexAttribPointer( //Em relação ao current bounded buffer
+            1, //layout (location = 0)
+            3, // size (vec3)
+            gl::FLOAT,
+            gl::FALSE, //Os dados já estão normalizados, então False para a normalizalção
+            stride,
+            offset, //offset (posição os os dados começam no buffer)
+        );
+        gl::EnableVertexAttribArray(1);
+
 
         //Cubo de luz
         gl::GenVertexArrays(1, &mut light_cube_vao);
@@ -142,7 +157,7 @@ let vertices: [f32; 108] = [ // 36 vértices * 3 floats (posição)
 
     }
 
-    let light_pos = Vector3::new(1.2, 1.0, 2.0);
+    
 
     event_loop.run(move |event, _ , control_flow| { //??????
 
@@ -178,10 +193,15 @@ let vertices: [f32; 108] = [ // 36 vértices * 3 floats (posição)
                     gl::ClearColor(0.1, 0.1, 0.1, 1.0);
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
+                    let light_x = 3.5 * time_value.sin();
+                    let light_y = 3.5 * time_value.cos();
+                    
+                    let light_pos = Vector3::new(light_x, 1.0, light_y);
                     //desenha o cubo principal
                     lighting_shader.use_program();
                     lighting_shader.set_vec3("objectColor", &Vector3::new(1.0, 0.5, 0.31));
-                    lighting_shader.set_vec3("lightColor", &Vector3::new(1.0, 1.0, 1.0));
+                    lighting_shader.set_vec3("lightColor", &Vector3::new(0.5, 1.0, 1.0));
+                    lighting_shader.set_vec3("lightPos", &light_pos);
 
 
                     let mut model = Matrix4::from_angle_x(Deg(time_value * 50.0));
@@ -192,6 +212,15 @@ let vertices: [f32; 108] = [ // 36 vértices * 3 floats (posição)
                     lighting_shader.set_mat4("model", &model);
                     lighting_shader.set_mat4("view", &view);
                     lighting_shader.set_mat4("projection", &projection);
+
+                    let normal_matrix = Matrix3::from_cols(
+
+                        model.x.truncate(),
+                        model.y.truncate(),
+                        model.z.truncate()
+                    ).invert().unwrap().transpose();
+
+                    lighting_shader.set_mat3("normalMatrix", &normal_matrix);
 
                     gl::BindVertexArray(cube_vao);
                     gl::DrawArrays(gl::TRIANGLES, 0, 36);
@@ -217,6 +246,9 @@ let vertices: [f32; 108] = [ // 36 vértices * 3 floats (posição)
             Event::MainEventsCleared => {
                 gl_context.window().request_redraw();
             }
+
+
+
             _ => (),
         }
     });

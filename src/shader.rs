@@ -3,7 +3,7 @@ use std::ffi::CString;
 use std::fs; //fylesystem
 use std::ptr;
 
-use cgmath::{Matrix, Matrix4, Vector3, Array};
+use cgmath::{Matrix, Matrix4, Vector3, Array, Matrix3};
 
 pub struct Shader {
     pub id: gl::types::GLuint,
@@ -75,6 +75,20 @@ impl Shader {
         unsafe {
             gl::Uniform1f(gl::GetUniformLocation(self.id, c_name.as_ptr()), value);
         }
+    }
+
+    pub fn set_mat3(&self, name: &str, mat: &Matrix3<f32>) {
+
+        let c_name = CString::new(name).unwrap();
+        unsafe {
+            gl::UniformMatrix3fv(
+                gl::GetUniformLocation(self.id, c_name.as_ptr()),
+                1,
+                gl::FALSE,
+                mat.as_ptr(),
+            );
+        }
+
     }
 
     pub fn set_mat4(&self, name: &str, mat: &Matrix4<f32>) {
