@@ -31,7 +31,12 @@ fn main() {
     let model = Model::load("Assets/miku.obj")
         .expect("Failed to load model");
 
+    unsafe {gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE)}
+    
+
+
     event_loop.run(move |event, _, control_flow| {
+        
         *control_flow = ControlFlow::Poll;
 
         match event {
