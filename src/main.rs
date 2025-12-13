@@ -197,12 +197,25 @@ let vertices: [f32; 216] = [
                     let light_y = 3.5 * time_value.cos();
                     
                     let light_pos = Vector3::new(light_x, 1.0, light_y);
+                    
+
+                    let light_color = Vector3::new(1.0, 1.0, 1.0);
+
+                    let diffuse_color = light_color * 0.5;
+                    let ambient_color = diffuse_color * 0.3;
+                    
+
                     //desenha o cubo principal
                     lighting_shader.use_program();
-                    lighting_shader.set_vec3("objectColor", &Vector3::new(1.0, 0.5, 0.31));
-                    lighting_shader.set_vec3("lightColor", &Vector3::new(0.5, 1.0, 1.0));
-                    lighting_shader.set_vec3("lightPos", &light_pos);
+                    lighting_shader.set_vec3("light.position", &light_pos);
+                    lighting_shader.set_vec3("light.diffuse", &diffuse_color);
+                    lighting_shader.set_vec3("light.ambient", &ambient_color);
+                    lighting_shader.set_vec3("light.specular", &Vector3::new(1.0, 1.0, 1.0));
 
+                    lighting_shader.set_vec3("material.ambient", &Vector3::new(0.0215,0.1745,0.0215));
+                    lighting_shader.set_vec3("material.diffuse", &Vector3::new(0.07568, 0.61424, 0.07568));
+                    lighting_shader.set_vec3("material.specular", &Vector3::new(0.633, 0.727811,0.633));
+                    lighting_shader.set_float("material.shininess", 128.0 * 0.6);
 
                     let mut model = Matrix4::from_angle_x(Deg(time_value * 50.0));
                     model = model * Matrix4::from_angle_y(Deg(time_value * 30.0));
@@ -214,7 +227,6 @@ let vertices: [f32; 216] = [
                     lighting_shader.set_mat4("projection", &projection);
 
                     let normal_matrix = Matrix3::from_cols(
-
                         model.x.truncate(),
                         model.y.truncate(),
                         model.z.truncate()
@@ -229,6 +241,7 @@ let vertices: [f32; 216] = [
                     light_cube_shader.use_program();
                     light_cube_shader.set_mat4("projection", &projection);
                     light_cube_shader.set_mat4("view", &view);
+
 
                     //aplica uma transformação que primeiro move a lampada do centro e demois
                     //reescala
