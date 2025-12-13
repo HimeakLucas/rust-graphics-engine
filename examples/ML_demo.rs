@@ -1,5 +1,6 @@
 use rust_graphics_engine::shader::Shader;
-use model_loading::model::Model;
+use rust_graphics_engine::model_loading::model::Model;
+
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
 use glutin::window::WindowBuilder;
@@ -24,11 +25,11 @@ fn main() {
 
     unsafe { gl::Enable(gl::DEPTH_TEST); }
 
-    let shader = Shader::new("src/solid_color.vs", "src/solid_color.fs")
+    let shader = Shader::new("resources/shaders/solid_color.vs", "resources/shaders/solid_color.fs")
         .expect("Failed to create shaders");
 
     // Pass model Path here!
-    let model = Model::load("Assets/miku.obj")
+    let model = Model::load("resources/assets/miku.obj")
         .expect("Failed to load model");
 
     unsafe {gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE)}

@@ -1066,17 +1066,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "model_loading"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "gl",
- "glam",
- "image",
- "tobj",
-]
-
-[[package]]
 name = "moxcms"
 version = "0.7.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1572,10 +1561,13 @@ checksum = "0c6a884d2998352bb4daf0183589aec883f16a6da1f4dde84d8e2e9a5409a1ce"
 name = "rust-graphics-engine"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "cgmath",
  "gl",
+ "glam",
  "glutin",
- "model_loading",
+ "image",
+ "tobj",
 ]
 
 [[package]]

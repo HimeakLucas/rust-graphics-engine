@@ -42,10 +42,10 @@ fn main() {
     //let lighting_shader = Shader::new("src/1.colors.vs", "src/1.colors.fs")
     //    .expect("Failed to create lighting shader");
 
-    let lighting_shader = Shader::new("src/basic_lighting.vs", "src/basic_lighting.fs")
+    let lighting_shader = Shader::new("resources/shaders/basic_lighting.vs", "resources/shaders/basic_lighting.fs")
         .expect("Failed to create lighting shader");
 
-    let light_cube_shader = Shader::new("src/1.light_cube.vs", "src/1.light_cube.fs")
+    let light_cube_shader = Shader::new("resources/shaders/light_cube.vs", "resources/shaders/light_cube.fs")
         .expect("Failed to create light cube shader");
 
 //Vertices e normais
