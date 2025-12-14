@@ -1,5 +1,7 @@
 mod shader;
 use shader::Shader;
+mod material;
+use material::Material;
 
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
@@ -47,6 +49,22 @@ fn main() {
 
     let light_cube_shader = Shader::new("resources/shaders/light_cube.vs", "resources/shaders/light_cube.fs")
         .expect("Failed to create light cube shader");
+
+// Criando um material de "Esmeralda" (exemplo)
+    let emerald = Material::new(
+        Vector3::new(0.0215, 0.1745, 0.0215),
+        Vector3::new(0.07568, 0.61424, 0.07568),
+        Vector3::new(0.633, 0.727811, 0.633),
+        0.6 * 128.0
+    );
+
+    let gold = Material::new(
+            Vector3::new(0.24725, 0.1995, 0.0745),
+            Vector3::new(0.75164, 0.60648, 0.22648),
+            Vector3::new(0.62828, 0.55580, 0.36606),
+            51.0
+    );
+
 
 //Vertices e normais
 let vertices: [f32; 216] = [
@@ -193,14 +211,12 @@ let vertices: [f32; 216] = [
                     gl::ClearColor(0.1, 0.1, 0.1, 1.0);
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-                    let light_x = 3.5 * time_value.sin();
-                    let light_y = 3.5 * time_value.cos();
+                    let light_x = 3.5 * (time_value * 1.0).sin();
+                    let light_y = 3.5 * (time_value * 1.0).cos();
                     
                     let light_pos = Vector3::new(light_x, 1.0, light_y);
                     
-
                     let light_color = Vector3::new(1.0, 1.0, 1.0);
-
                     let diffuse_color = light_color * 0.5;
                     let ambient_color = diffuse_color * 0.3;
                     
@@ -211,20 +227,23 @@ let vertices: [f32; 216] = [
                     lighting_shader.set_vec3("light.diffuse", &diffuse_color);
                     lighting_shader.set_vec3("light.ambient", &ambient_color);
                     lighting_shader.set_vec3("light.specular", &Vector3::new(1.0, 1.0, 1.0));
+                    lighting_shader.set_vec3("viewPos", &Vector3::new(0.0, 0.0, 6.0));
 
-                    lighting_shader.set_vec3("material.ambient", &Vector3::new(0.0215,0.1745,0.0215));
-                    lighting_shader.set_vec3("material.diffuse", &Vector3::new(0.07568, 0.61424, 0.07568));
-                    lighting_shader.set_vec3("material.specular", &Vector3::new(0.633, 0.727811,0.633));
-                    lighting_shader.set_float("material.shininess", 128.0 * 0.6);
-
-                    let mut model = Matrix4::from_angle_x(Deg(time_value * 50.0));
-                    model = model * Matrix4::from_angle_y(Deg(time_value * 30.0));
+                    
                     let view = Matrix4::from_translation(Vector3::new(0.0, 0.0, -6.0));
                     let projection = perspective(Deg(45.0), 800.0 / 600.0, 0.1, 100.0);
 
-                    lighting_shader.set_mat4("model", &model);
                     lighting_shader.set_mat4("view", &view);
                     lighting_shader.set_mat4("projection", &projection);
+
+
+
+                    emerald.apply(&lighting_shader, "material");                  
+                    let mut model = Matrix4::from_translation(Vector3::new(1.0, 0.0, 0.0));
+                    model = model * Matrix4::from_angle_y(Deg(-time_value * 15.0));
+                    model = model * Matrix4::from_angle_x(Deg(-time_value * 13.0));
+
+                    lighting_shader.set_mat4("model", &model);
 
                     let normal_matrix = Matrix3::from_cols(
                         model.x.truncate(),
@@ -236,6 +255,24 @@ let vertices: [f32; 216] = [
 
                     gl::BindVertexArray(cube_vao);
                     gl::DrawArrays(gl::TRIANGLES, 0, 36);
+
+                    gold.apply(&lighting_shader, "material");
+                    let mut model = Matrix4::from_translation(Vector3::new(-1.0, 0.0, 0.0));
+                    model = model * Matrix4::from_angle_y(Deg(time_value * 10.0));
+                    model = model * Matrix4::from_angle_x(Deg(time_value * 16.0));
+
+                    lighting_shader.set_mat4("model", &model);
+
+                    let normal_matrix = Matrix3::from_cols(
+                        model.x.truncate(),
+                        model.y.truncate(),
+                        model.z.truncate()
+                    ).invert().unwrap().transpose();
+
+                    lighting_shader.set_mat3("normalMatrix", &normal_matrix);
+
+                    gl::DrawArrays(gl::TRIANGLES, 0, 36);
+
 
                     //desenha o cubo lampada
                     light_cube_shader.use_program();
@@ -259,9 +296,6 @@ let vertices: [f32; 216] = [
             Event::MainEventsCleared => {
                 gl_context.window().request_redraw();
             }
-
-
-
             _ => (),
         }
     });
