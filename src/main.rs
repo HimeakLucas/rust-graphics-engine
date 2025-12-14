@@ -53,7 +53,6 @@ fn main() {
         .expect("Failed to create light cube shader");
 
     let mut camera = Camera::new(
-
         Point3::new(0.0, 0.0, 3.0),
         -90.0,
         0.0
@@ -191,6 +190,8 @@ let vertices: [f32; 216] = [
     }
 
     let mut last_frame_time = 0.0;
+    let mut simulated_time = 0.0;
+    let mut world_paused = false;
 
     event_loop.run(move |event, _ , control_flow| { //??????
 
@@ -248,6 +249,11 @@ let vertices: [f32; 216] = [
                         VirtualKeyCode::S => s_pressed = is_pressed,
                         VirtualKeyCode::A => a_pressed = is_pressed,
                         VirtualKeyCode::D => d_pressed = is_pressed,
+                        VirtualKeyCode::P => {
+                            if is_pressed {
+                                    world_paused = !world_paused; //Inverte valor
+                                }
+                        },
                         VirtualKeyCode::Escape if is_pressed => {
                             *control_flow = ControlFlow::Exit;
                         }
@@ -270,6 +276,10 @@ let vertices: [f32; 216] = [
                 let delta_time = current_time - last_frame_time;
                 last_frame_time = current_time;
 
+                if !world_paused {
+                    simulated_time += delta_time;
+                }
+
                 if w_pressed {camera.process_keyboard(CameraMovement::Forward, delta_time);}
                 if s_pressed {camera.process_keyboard(CameraMovement::Backward, delta_time);}
                 if a_pressed {camera.process_keyboard(CameraMovement::Left, delta_time);}
@@ -281,8 +291,8 @@ let vertices: [f32; 216] = [
                     gl::ClearColor(0.1, 0.1, 0.1, 1.0);
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-                    let light_x = 3.5 * (time_value * 1.0).sin();
-                    let light_y = 3.5 * (time_value * 1.0).cos();
+                    let light_x = 3.5 * (simulated_time * 1.0).sin();
+                    let light_y = 3.5 * (simulated_time * 1.0).cos();
                     
                     let light_pos = Vector3::new(light_x, 1.0, light_y);
                     
@@ -311,8 +321,8 @@ let vertices: [f32; 216] = [
 
                     emerald.apply(&lighting_shader, "material");                  
                     let mut model = Matrix4::from_translation(Vector3::new(1.0, 0.0, 0.0));
-                    model = model * Matrix4::from_angle_y(Deg(-time_value * 15.0));
-                    model = model * Matrix4::from_angle_x(Deg(-time_value * 13.0));
+                    model = model * Matrix4::from_angle_y(Deg(-simulated_time * 15.0));
+                    model = model * Matrix4::from_angle_x(Deg(-simulated_time * 13.0));
 
                     lighting_shader.set_mat4("model", &model);
 
@@ -329,8 +339,8 @@ let vertices: [f32; 216] = [
 
                     gold.apply(&lighting_shader, "material");
                     let mut model = Matrix4::from_translation(Vector3::new(-1.0, 0.0, 0.0));
-                    model = model * Matrix4::from_angle_y(Deg(time_value * 10.0));
-                    model = model * Matrix4::from_angle_x(Deg(time_value * 16.0));
+                    model = model * Matrix4::from_angle_y(Deg(simulated_time * 10.0));
+                    model = model * Matrix4::from_angle_x(Deg(simulated_time * 16.0));
 
                     lighting_shader.set_mat4("model", &model);
 
