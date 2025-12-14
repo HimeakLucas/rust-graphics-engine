@@ -63,6 +63,9 @@ fn main() {
     let mut a_pressed = false;
     let mut d_pressed = false;
 
+    let mut space_pressed = false;
+    let mut shift_pressed = false;
+
 
 // Criando um material de "Esmeralda" (exemplo)
     let emerald = Material::new(
@@ -249,6 +252,10 @@ let vertices: [f32; 216] = [
                         VirtualKeyCode::S => s_pressed = is_pressed,
                         VirtualKeyCode::A => a_pressed = is_pressed,
                         VirtualKeyCode::D => d_pressed = is_pressed,
+
+                        VirtualKeyCode::Space => space_pressed = is_pressed,
+                        VirtualKeyCode::LShift => shift_pressed = is_pressed, 
+
                         VirtualKeyCode::P => {
                             if is_pressed {
                                     world_paused = !world_paused; //Inverte valor
@@ -284,6 +291,10 @@ let vertices: [f32; 216] = [
                 if s_pressed {camera.process_keyboard(CameraMovement::Backward, delta_time);}
                 if a_pressed {camera.process_keyboard(CameraMovement::Left, delta_time);}
                 if d_pressed {camera.process_keyboard(CameraMovement::Right, delta_time);}
+
+                if space_pressed {camera.process_keyboard(CameraMovement::Up, delta_time);}
+                if shift_pressed {camera.process_keyboard(CameraMovement::Down, delta_time);}
+
 
                 let time_value = start_time.elapsed().as_secs_f32();
 
