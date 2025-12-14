@@ -17,7 +17,7 @@ use cgmath::{Matrix3, Matrix4, Vector3, Deg, SquareMatrix, Matrix, perspective};
 use std::time::Instant;
 use glutin::event::VirtualKeyCode;
 
-use glutin::event::{DeviceEvent, ElementState}; // Adicione DeviceEvent e ElementState
+use glutin::event::{DeviceEvent}; // Adicione DeviceEvent e ElementState
 
 fn main() {
     
@@ -38,15 +38,6 @@ fn main() {
     };
 
     gl::load_with(|ptr| gl_context.get_proc_address(ptr) as *const _);
-
-
-    gl_context.window()
-        .set_cursor_grab(CursorGrabMode::Locked)
-        .or_else(|_| gl_context.window().set_cursor_grab(CursorGrabMode::Confined)) // Fallback seguro
-        .expect("Failed to grab cursor");
-
-    gl_context.window().set_cursor_visible(false);
-
 
 
     unsafe {
@@ -72,10 +63,6 @@ fn main() {
     let mut s_pressed = false;
     let mut a_pressed = false;
     let mut d_pressed = false;
-    
-    let mut first_mouse = true;
-    let mut last_x = 400.0;
-    let mut last_y = 300.0;
 
 
 // Criando um material de "Esmeralda" (exemplo)
@@ -219,34 +206,58 @@ let vertices: [f32; 216] = [
                 }
                 return;
             },
-            Event::WindowEvent {event, ..} => match event {
-                WindowEvent::Resized(physical_size)  => {
-                    gl_context.resize(physical_size);
-                    unsafe {
-                        gl::Viewport(0, 0, physical_size.width as i32, physical_size.height as i32);
-                    }
-                },
-
-                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-
-                WindowEvent::KeyboardInput {input, ..} => {
-
-                    if let Some(keycode) = input.virtual_keycode {
-
-                        let is_pressed = input.state == glutin::event::ElementState::Pressed;
-
-                        match keycode {
-                            VirtualKeyCode::W => w_pressed = is_pressed,
-                            VirtualKeyCode::S => s_pressed = is_pressed,
-                            VirtualKeyCode::A => a_pressed = is_pressed,
-                            VirtualKeyCode::D => d_pressed = is_pressed,
-                            VirtualKeyCode::Escape => *control_flow = ControlFlow::Exit,
-                            _ => (),
+            Event::WindowEvent { event, .. } => match event {
+            WindowEvent::Resized(physical_size) => {
+                gl_context.resize(physical_size);
+                unsafe {
+                    gl::Viewport(
+                        0,
+                        0,
+                        physical_size.width as i32,
+                        physical_size.height as i32,
+                    );
+                }
+            }
+        
+            WindowEvent::Focused(true) => {
+                let window = gl_context.window();
+            
+                if window.set_cursor_grab(CursorGrabMode::Locked).is_err() {
+                    let _ = window.set_cursor_grab(CursorGrabMode::Confined);
+                }
+            
+                window.set_cursor_visible(false);
+            }
+        
+            WindowEvent::Focused(false) => {
+                let window = gl_context.window();
+                let _ = window.set_cursor_grab(CursorGrabMode::None);
+                window.set_cursor_visible(true);
+            }
+        
+            WindowEvent::CloseRequested => {
+                *control_flow = ControlFlow::Exit;
+            }
+        
+            WindowEvent::KeyboardInput { input, .. } => {
+                if let Some(keycode) = input.virtual_keycode {
+                    let is_pressed = input.state == glutin::event::ElementState::Pressed;
+                
+                    match keycode {
+                        VirtualKeyCode::W => w_pressed = is_pressed,
+                        VirtualKeyCode::S => s_pressed = is_pressed,
+                        VirtualKeyCode::A => a_pressed = is_pressed,
+                        VirtualKeyCode::D => d_pressed = is_pressed,
+                        VirtualKeyCode::Escape if is_pressed => {
+                            *control_flow = ControlFlow::Exit;
                         }
+                        _ => (),
                     }
                 }
-                _ => (),
-                }
+            }
+        
+            _ => (),
+            }       
 
             Event::DeviceEvent { event: DeviceEvent::MouseMotion { delta }, .. } => {
                 camera.process_mouse(delta.0 as f32, -delta.1 as f32); 
