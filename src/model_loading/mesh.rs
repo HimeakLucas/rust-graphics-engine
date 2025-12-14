@@ -1,5 +1,5 @@
-use crate::vertex::Vertex;
-use crate::texture::Texture;
+use super::vertex::Vertex;
+use super::texture::Texture;
 
 use gl;
 use std::mem;

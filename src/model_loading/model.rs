@@ -1,4 +1,4 @@
-use crate::{mesh::Mesh, vertex::Vertex};
+use super::{mesh::Mesh, vertex::Vertex};
 use glam::{Vec2, Vec3};
 
 use std::path::Path;

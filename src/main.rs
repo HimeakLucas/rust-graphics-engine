@@ -1,17 +1,23 @@
 mod shader;
 use shader::Shader;
+mod material;
+use material::Material;
+mod camera;
+use camera::{Camera, CameraMovement};
+use cgmath::Point3;
 
 use glutin::event::{Event, WindowEvent};
 use glutin::event_loop::{ControlFlow, EventLoop};
-use glutin::window::WindowBuilder;
 use glutin::{Api, ContextBuilder, GlRequest};
 
+use glutin::window::{WindowBuilder, CursorGrabMode};
 use std::ptr;
 
 use cgmath::{Matrix3, Matrix4, Vector3, Deg, SquareMatrix, Matrix, perspective};
 use std::time::Instant;
+use glutin::event::VirtualKeyCode;
 
-
+use glutin::event::{DeviceEvent}; // Adicione DeviceEvent e ElementState
 
 fn main() {
     
@@ -33,20 +39,47 @@ fn main() {
 
     gl::load_with(|ptr| gl_context.get_proc_address(ptr) as *const _);
 
+
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
     }
     // obs: r#" "# é uma raw string literal. Não é necessário \n ou \". A string aparece exatamente
     // como está entre aspas
 
-    //let lighting_shader = Shader::new("src/1.colors.vs", "src/1.colors.fs")
-    //    .expect("Failed to create lighting shader");
-
-    let lighting_shader = Shader::new("src/basic_lighting.vs", "src/basic_lighting.fs")
+    let lighting_shader = Shader::new("resources/shaders/basic_lighting.vs", "resources/shaders/basic_lighting.fs")
         .expect("Failed to create lighting shader");
 
-    let light_cube_shader = Shader::new("src/1.light_cube.vs", "src/1.light_cube.fs")
+    let light_cube_shader = Shader::new("resources/shaders/light_cube.vs", "resources/shaders/light_cube.fs")
         .expect("Failed to create light cube shader");
+
+    let mut camera = Camera::new(
+
+        Point3::new(0.0, 0.0, 3.0),
+        -90.0,
+        0.0
+    );
+
+    let mut w_pressed = false;
+    let mut s_pressed = false;
+    let mut a_pressed = false;
+    let mut d_pressed = false;
+
+
+// Criando um material de "Esmeralda" (exemplo)
+    let emerald = Material::new(
+        Vector3::new(0.0215, 0.1745, 0.0215),
+        Vector3::new(0.07568, 0.61424, 0.07568),
+        Vector3::new(0.633, 0.727811, 0.633),
+        0.6 * 128.0
+    );
+
+    let gold = Material::new(
+            Vector3::new(0.24725, 0.1995, 0.0745),
+            Vector3::new(0.75164, 0.60648, 0.22648),
+            Vector3::new(0.62828, 0.55580, 0.36606),
+            51.0
+    );
+
 
 //Vertices e normais
 let vertices: [f32; 216] = [
@@ -157,7 +190,7 @@ let vertices: [f32; 216] = [
 
     }
 
-    
+    let mut last_frame_time = 0.0;
 
     event_loop.run(move |event, _ , control_flow| { //??????
 
@@ -173,19 +206,74 @@ let vertices: [f32; 216] = [
                 }
                 return;
             },
-            Event::WindowEvent {event, ..} => match event {
-                WindowEvent::Resized(physical_size)  => {
-                    gl_context.resize(physical_size);
-
-                    unsafe {
-                        gl::Viewport(0, 0, physical_size.width as i32, physical_size.height as i32);
+            Event::WindowEvent { event, .. } => match event {
+            WindowEvent::Resized(physical_size) => {
+                gl_context.resize(physical_size);
+                unsafe {
+                    gl::Viewport(
+                        0,
+                        0,
+                        physical_size.width as i32,
+                        physical_size.height as i32,
+                    );
+                }
+            }
+        
+            WindowEvent::Focused(true) => {
+                let window = gl_context.window();
+            
+                if window.set_cursor_grab(CursorGrabMode::Locked).is_err() {
+                    let _ = window.set_cursor_grab(CursorGrabMode::Confined);
+                }
+            
+                window.set_cursor_visible(false);
+            }
+        
+            WindowEvent::Focused(false) => {
+                let window = gl_context.window();
+                let _ = window.set_cursor_grab(CursorGrabMode::None);
+                window.set_cursor_visible(true);
+            }
+        
+            WindowEvent::CloseRequested => {
+                *control_flow = ControlFlow::Exit;
+            }
+        
+            WindowEvent::KeyboardInput { input, .. } => {
+                if let Some(keycode) = input.virtual_keycode {
+                    let is_pressed = input.state == glutin::event::ElementState::Pressed;
+                
+                    match keycode {
+                        VirtualKeyCode::W => w_pressed = is_pressed,
+                        VirtualKeyCode::S => s_pressed = is_pressed,
+                        VirtualKeyCode::A => a_pressed = is_pressed,
+                        VirtualKeyCode::D => d_pressed = is_pressed,
+                        VirtualKeyCode::Escape if is_pressed => {
+                            *control_flow = ControlFlow::Exit;
+                        }
+                        _ => (),
                     }
-                },
-                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                _ => (),
+                }
+            }
+        
+            _ => (),
+            }       
 
+            Event::DeviceEvent { event: DeviceEvent::MouseMotion { delta }, .. } => {
+                camera.process_mouse(delta.0 as f32, -delta.1 as f32); 
             },
+        
             Event::RedrawRequested(_) => {
+
+
+                let current_time = start_time.elapsed().as_secs_f32();
+                let delta_time = current_time - last_frame_time;
+                last_frame_time = current_time;
+
+                if w_pressed {camera.process_keyboard(CameraMovement::Forward, delta_time);}
+                if s_pressed {camera.process_keyboard(CameraMovement::Backward, delta_time);}
+                if a_pressed {camera.process_keyboard(CameraMovement::Left, delta_time);}
+                if d_pressed {camera.process_keyboard(CameraMovement::Right, delta_time);}
 
                 let time_value = start_time.elapsed().as_secs_f32();
 
@@ -193,28 +281,42 @@ let vertices: [f32; 216] = [
                     gl::ClearColor(0.1, 0.1, 0.1, 1.0);
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-                    let light_x = 3.5 * time_value.sin();
-                    let light_y = 3.5 * time_value.cos();
+                    let light_x = 3.5 * (time_value * 1.0).sin();
+                    let light_y = 3.5 * (time_value * 1.0).cos();
                     
                     let light_pos = Vector3::new(light_x, 1.0, light_y);
+                    
+                    let light_color = Vector3::new(1.0, 1.0, 1.0);
+                    let diffuse_color = light_color * 0.5;
+                    let ambient_color = diffuse_color * 0.3;
+                    
+
                     //desenha o cubo principal
                     lighting_shader.use_program();
-                    lighting_shader.set_vec3("objectColor", &Vector3::new(1.0, 0.5, 0.31));
-                    lighting_shader.set_vec3("lightColor", &Vector3::new(0.5, 1.0, 1.0));
-                    lighting_shader.set_vec3("lightPos", &light_pos);
+                    lighting_shader.set_vec3("light.position", &light_pos);
+                    lighting_shader.set_vec3("light.diffuse", &diffuse_color);
+                    lighting_shader.set_vec3("light.ambient", &ambient_color);
+                    lighting_shader.set_vec3("light.specular", &Vector3::new(1.0, 1.0, 1.0));
 
+                    let cam_pos = Vector3::new(camera.position.x, camera.position.y, camera.position.z); 
+                    lighting_shader.set_vec3("viewPos", &cam_pos);
 
-                    let mut model = Matrix4::from_angle_x(Deg(time_value * 50.0));
-                    model = model * Matrix4::from_angle_y(Deg(time_value * 30.0));
-                    let view = Matrix4::from_translation(Vector3::new(0.0, 0.0, -6.0));
+                    
+                    let view = camera.get_view_matrix();
                     let projection = perspective(Deg(45.0), 800.0 / 600.0, 0.1, 100.0);
 
-                    lighting_shader.set_mat4("model", &model);
                     lighting_shader.set_mat4("view", &view);
                     lighting_shader.set_mat4("projection", &projection);
 
-                    let normal_matrix = Matrix3::from_cols(
 
+                    emerald.apply(&lighting_shader, "material");                  
+                    let mut model = Matrix4::from_translation(Vector3::new(1.0, 0.0, 0.0));
+                    model = model * Matrix4::from_angle_y(Deg(-time_value * 15.0));
+                    model = model * Matrix4::from_angle_x(Deg(-time_value * 13.0));
+
+                    lighting_shader.set_mat4("model", &model);
+
+                    let normal_matrix = Matrix3::from_cols(
                         model.x.truncate(),
                         model.y.truncate(),
                         model.z.truncate()
@@ -225,10 +327,29 @@ let vertices: [f32; 216] = [
                     gl::BindVertexArray(cube_vao);
                     gl::DrawArrays(gl::TRIANGLES, 0, 36);
 
+                    gold.apply(&lighting_shader, "material");
+                    let mut model = Matrix4::from_translation(Vector3::new(-1.0, 0.0, 0.0));
+                    model = model * Matrix4::from_angle_y(Deg(time_value * 10.0));
+                    model = model * Matrix4::from_angle_x(Deg(time_value * 16.0));
+
+                    lighting_shader.set_mat4("model", &model);
+
+                    let normal_matrix = Matrix3::from_cols(
+                        model.x.truncate(),
+                        model.y.truncate(),
+                        model.z.truncate()
+                    ).invert().unwrap().transpose();
+
+                    lighting_shader.set_mat3("normalMatrix", &normal_matrix);
+
+                    gl::DrawArrays(gl::TRIANGLES, 0, 36);
+
+
                     //desenha o cubo lampada
                     light_cube_shader.use_program();
                     light_cube_shader.set_mat4("projection", &projection);
                     light_cube_shader.set_mat4("view", &view);
+
 
                     //aplica uma transformação que primeiro move a lampada do centro e demois
                     //reescala
@@ -246,9 +367,6 @@ let vertices: [f32; 216] = [
             Event::MainEventsCleared => {
                 gl_context.window().request_redraw();
             }
-
-
-
             _ => (),
         }
     });
