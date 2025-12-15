@@ -189,6 +189,7 @@ let vertices: [f32; 216] = [
             ptr::null(), //offset (posição os os dados começam no buffer)
         );
         gl::EnableVertexAttribArray(0);
+        //gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE)
 
     }
 

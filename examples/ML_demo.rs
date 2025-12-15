@@ -1,6 +1,7 @@
 use rust_graphics_engine::shader::Shader;
 use rust_graphics_engine::model_loading::model::Model;
 use rust_graphics_engine::camera::{Camera, CameraMovement};
+use rust_graphics_engine::material::Material;
 
 use glutin::event::{Event, WindowEvent, DeviceEvent, VirtualKeyCode, ElementState};
 use glutin::event_loop::{ControlFlow, EventLoop};
